@@ -1,0 +1,244 @@
+#1/3 Files
+class Inventory:
+    def __init__(self, new_id, new_name, new_stock, new_price):
+        self.__id = new_id
+        self.__name = new_name
+        self.__stock = new_stock
+        self.__price = new_price
+
+    def get_id(self):
+        return self.__id
+
+    def get_name(self):
+        return self.__name
+
+    def get_stock(self):
+        return self.__stock
+
+    def get_price(self):
+        return self.__price
+
+    def restock(self, new_stock):
+        if new_stock > 0:
+            self.__stock += new_stock
+            return True
+        else:
+            return False
+
+    def purchase(self, purch_qty):
+        if purch_qty > 0 and self.__stock >= purch_qty:
+            self.__stock -= purch_qty
+            return True
+        else:
+       #    self.__stock += purch_qty
+            return False
+
+    def __str__(self):
+        strOut = "Item ID: " + str(self.get_id()) + "\n"
+        strOut += "Item Name: " + self.get_name() + "\n"
+        strOut += "Stock: " + str(self.get_stock()) + "\n"
+        strOut += "Price: $" + format(self.get_price(), ".2f")
+        return strOut
+
+
+class TransactionItem:
+    def __init__(self, new_id, new_name, new_qty, new_price):
+        self.__id = new_id
+        self.__name = new_name
+        self.__qty = new_qty
+        self.__price = new_price
+        self.__totalCost = 0.0
+
+    def get_id(self):
+        return self.__id
+
+    def set_id(self, new_id):
+        self.__id = new_id
+
+    def get_name(self):
+        return self.__name
+
+    def set_name(self, new_name):
+        self.__name = new_name
+
+    def get_qty(self):
+        return self.__qty
+
+    def set_qty(self, new_qty):
+        self.__qty = new_qty
+
+    def get_price(self):
+        return self.__price
+
+    def set_price(self, new_price):
+        self.__price = new_price
+
+    def calc_cost(self):
+        self.__totalCost = self.__price * self.__qty
+
+    def get_calc_cost(self):
+        return self.__totalCost
+
+    def __str__(self):
+        strOut = "Item ID: " + str(self.get_id()) + "\n"
+        strOut += "Item Name: " + self.get_name() + "\n"
+        strOut += "Quantity: " + str(self.get_qty()) + "\n"
+        strOut += "Price: $" + format(self.get_price(), ".2f") + "\n"
+        strOut += "Cost: $" + format(self.__totalCost, ".2f") + "\n"
+        return strOut
+    
+#2/3 Files
+import inventory
+
+def process_inventory_file(file_name):
+    # open file
+    count = 0
+    inventory_list = []
+
+    try:
+        infile = open(file_name, "r")
+        lines = infile.readlines()
+
+        for i in range(0, len(lines), 4):
+            item_id = int(lines[i].strip())
+            item_name = lines[i + 1].strip()
+            item_stock = int(lines[i + 2].strip())
+            item_price = float(lines[i + 3].strip())
+
+            # create inventory object
+            inventory_item = inventory.Inventory(item_id, item_name, item_stock, item_price)
+
+            # add inventory object to list
+            inventory_list.append(inventory_item)
+
+            count += 1
+
+        infile.close()
+
+    except FileNotFoundError:
+        print(f"Error: File '{file_name}' not found.")
+
+    return inventory_list
+
+
+  
+def print_inventory_menu(inventory_list):
+    print("\nID  {:<30}Price\tQty Available".format("Item"))
+    for item in inventory_list:
+        print("{:<3} {:<30} ${:.2f}\t{}".format(item.get_id(), item.get_name(), item.get_price(), item.get_stock()))
+
+
+
+def get_item_id_from_user(inventory_list):
+    # prompt user for item id
+    while True:
+        try:
+            item_id = int(input("\nEnter the ID of the item you want to purchase/return (or 0 to finish): "))
+
+            # check if item id is in the inventory list
+            valid_id = False
+            for item in inventory_list:
+                if item.get_id() == item_id:
+                    valid_id = True
+                    break
+
+            if valid_id:
+                return item_id
+            elif item_id == 0:
+                print("Thank you for visiting!")
+                break
+            else:
+                print("Invalid item ID. Please enter a valid ID.")
+
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
+
+def write_updated_inventory(inventory_list):
+    # Open the file for writing
+    outfile = open("UpdatedInventory.txt", "w")
+    
+    for item in inventory_list:
+        outfile.write(str(item.get_id()) + '\n')
+        outfile.write(item.get_name() + '\n')
+        outfile.write(str(item.get_price()) + '\n')
+        outfile.write(str(item.get_stock()) + '\n')
+
+    # Close the file
+    outfile.close()
+
+
+def print_invoice(transaction_list, inventory_list):
+    total_amount_due = 0
+    sales_tax_rate = 0.085
+
+    print("\nInvoice:")
+    print("ID  Item\t\t\t\tQty\tPrice\tTotal")
+
+
+    for transaction_item in transaction_list:
+        total_price = transaction_item.get_qty() * transaction_item.get_price()
+        total_tax = total_price * sales_tax_rate
+        total_amount_due += total_price
+       
+      
+
+        print(f"{transaction_item.get_id()}  " \
+            f"{transaction_item.get_name():<30}" \
+            f"{transaction_item.get_qty()}\t$" \
+            f"{transaction_item.get_price():.2f}\t$" \
+            f"{total_price:.2f}")
+            
+        print("\nThe Total of All Items: ${:.2f}".format(total_price))
+        print("\nThe Total Tax : ${:.2f}".format(total_tax))
+        print("\nThe Total Amount Due : ${:.2f}".format(total_amount_due))
+
+#3/3 Files
+import inventory
+import FP
+
+
+def main():
+    inventory_list = FP.process_inventory_file("Inventory.txt")
+    transaction_list = []
+
+    FP.print_inventory_menu(inventory_list)
+
+    while True:
+        item_id = FP.get_item_id_from_user(inventory_list)
+        if item_id == 0:
+            break
+
+        quantity = int(input("Enter quantity (positive for purchase, negative for return): "))
+        is_purchase = quantity > 0
+        quantity = abs(quantity)
+
+        inventory_item = None
+        for item in inventory_list:
+            if item.get_id() == item_id:
+                inventory_item = item
+                break
+
+        if inventory_item:
+            transaction_item = inventory.TransactionItem(item_id, inventory_item.get_name(), quantity, inventory_item.get_price())
+            transaction_list.append(transaction_item)
+
+            if is_purchase:
+                if not inventory_item.purchase(quantity):
+                    print("Insufficient stock. Purchase failed.")
+                    transaction_list.pop()  # Remove the transaction if purchase failed
+            else:
+                inventory_item.restock(quantity)
+
+            FP.print_inventory_menu(inventory_list)
+        else:
+            print("Invalid item ID. Please enter a valid ID.")
+
+    if not transaction_list:
+        print("Thank you for visiting.")
+        
+    else:
+        FP.write_updated_inventory(inventory_list)
+        FP.print_invoice(transaction_list, inventory_list)
+
+main()
